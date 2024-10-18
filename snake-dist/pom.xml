@@ -37,6 +37,7 @@
 	</properties>
 	<profiles>
 		<profile>
+			<id>default</id>
 			<activation>
 				<os>
 					<family>Linux</family>
