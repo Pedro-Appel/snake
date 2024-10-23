@@ -25,6 +25,6 @@
 			<version>2.8.6</version>
 		</dependency>
 	</dependencies>
-	<name>Snake - API</name>
+<!--	<name>Snake - API</name>-->
 	<description>Provides a Java API to Razer devices. Implements are provided by separate modules, such as snake-backend-openrazer.</description>
 </project>

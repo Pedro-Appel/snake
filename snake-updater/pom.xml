@@ -52,10 +52,10 @@
 			<plugin>
 				<groupId>org.openjfx</groupId>
 				<artifactId>javafx-maven-plugin</artifactId>
-				<version>0.0.5</version>
+				<version>0.0.8</version>
 			</plugin>
 		</plugins>
 	</build>
-	<name>Snake - Updater</name>
+<!--	<name>Snake - Updater</name>-->
 	<description>Updater and installer UI implemented based on JAdaptive's Forker Updater library.</description>
 </project>

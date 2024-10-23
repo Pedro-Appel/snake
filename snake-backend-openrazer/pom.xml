@@ -27,6 +27,6 @@
 		</dependency>
 
 	</dependencies>
-	<name>Snake - OpenRazer backend</name>
+<!--	<name>Snake - OpenRazer backend</name>-->
 	<description>Uses OpenRazer (https://openrazer.github.io/), connecting to ther DBus service provided by the openrazer daemon. </description>
 </project>
