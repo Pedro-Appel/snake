@@ -47,9 +47,8 @@ public class JImpulseAudioBackend implements AudioBackend {
 	@Override
 	public List<AudioSource> getSources() {
 
-		/* TODO add this to jimpulse so we can get a list of devices more generally? */
-		/* TODO or make more efficient and not load so much */
-		ProcessBuilder pb = new ProcessBuilder("pacmd", "list-sources");
+		// Use 'pactl list sources' instead of 'pacmd list-sources'
+		ProcessBuilder pb = new ProcessBuilder("pactl", "list", "sources");
 		pb.redirectErrorStream(true);
 		try {
 			Process p = pb.start();
@@ -61,21 +60,21 @@ public class JImpulseAudioBackend implements AudioBackend {
 				while ((line = r.readLine()) != null) {
 					line = line.trim();
 					if(line.startsWith("*")) {
-						/* Don't care if active or not */
+						// Ignore if line starts with '*' (active source marker)
 						line = line.substring(2);
 					}
-					if (line.startsWith("index: ")) {
+					if (line.startsWith("Source #")) {
 						if (name != null && index != -1) {
 							l.add(new AudioSource(index, name));
 							name = null;
 						}
-						index = Integer.parseInt(line.substring(7));
+						index = Integer.parseInt(line.substring(8).trim());
 					}
-					if (index != -1 && line.startsWith("name: ")) {
-						name = line.substring(6);
+					if (index != -1 && line.startsWith("Name: ")) {
+						name = line.substring(6).trim();
 					}
-					if (index != -1 && line.startsWith("device.description = \"")) {
-						name = line.substring(22, line.length() - 1);
+					if (index != -1 && line.startsWith("Description: ")) {
+						name = line.substring(13).trim();
 					}
 				}
 			}
@@ -87,6 +86,7 @@ public class JImpulseAudioBackend implements AudioBackend {
 				if (ret != 0)
 					throw new IOException(String.format("Could not list sources. Exited with value %d.", ret));
 			} catch (InterruptedException ie) {
+				// Handle interruption if necessary
 			}
 			return l;
 		} catch (RuntimeException e) {
@@ -95,6 +95,7 @@ public class JImpulseAudioBackend implements AudioBackend {
 			throw new IllegalStateException("Failed to get sources.");
 		}
 	}
+
 
 	@Override
 	public List<AudioSink> getSinks() {
