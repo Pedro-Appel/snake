@@ -46,56 +46,59 @@ public class JImpulseAudioBackend implements AudioBackend {
 
 	@Override
 	public List<AudioSource> getSources() {
+		List<AudioSource> sources = new ArrayList<>();
+		Process process = runCommand("pactl", "list", "sources");
 
-		// Use 'pactl list sources' instead of 'pacmd list-sources'
-		ProcessBuilder pb = new ProcessBuilder("pactl", "list", "sources");
-		pb.redirectErrorStream(true);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            parseAudioSources(reader, sources);
+            if (process.waitFor() != 0) {
+                throw new IOException("Failed to list sources. Process exited with error.");
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new IllegalStateException("Failed to get sources.", e);
+        }
+
+        return sources;
+	}
+
+	// Helper method to run the command and return the process
+	private Process runCommand(String... command) {
 		try {
-			Process p = pb.start();
-			List<AudioSource> l = new ArrayList<>();
-			String name = null;
-			int index = -1;
-			try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-				String line;
-				while ((line = r.readLine()) != null) {
-					line = line.trim();
-					if(line.startsWith("*")) {
-						// Ignore if line starts with '*' (active source marker)
-						line = line.substring(2);
-					}
-					if (line.startsWith("Source #")) {
-						if (name != null && index != -1) {
-							l.add(new AudioSource(index, name));
-							name = null;
-						}
-						index = Integer.parseInt(line.substring(8).trim());
-					}
-					if (index != -1 && line.startsWith("Name: ")) {
-						name = line.substring(6).trim();
-					}
-					if (index != -1 && line.startsWith("Description: ")) {
-						name = line.substring(13).trim();
-					}
-				}
-			}
-			if (name != null && index != -1) {
-				l.add(new AudioSource(index, name));
-			}
-			try {
-				int ret = p.waitFor();
-				if (ret != 0)
-					throw new IOException(String.format("Could not list sources. Exited with value %d.", ret));
-			} catch (InterruptedException ie) {
-				// Handle interruption if necessary
-			}
-			return l;
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new IllegalStateException("Failed to get sources.");
+			ProcessBuilder processBuilder = new ProcessBuilder(command);
+			processBuilder.redirectErrorStream(true);
+			return processBuilder.start();
+		} catch (IOException e) {
+			throw new IllegalStateException("Failed to run command: " + String.join(" ", command), e);
 		}
 	}
 
+	// Helper method to parse audio sources from the command output
+	private void parseAudioSources(BufferedReader reader, List<AudioSource> sources) throws IOException {
+		String line;
+		String name = null;
+		int index = -1;
+
+		while ((line = reader.readLine()) != null) {
+			line = line.trim();
+			if (line.startsWith("Source #")) {
+				addAudioSource(sources, index, name);
+				index = Integer.parseInt(line.substring(8).trim());
+				name = null;
+			} else if (index != -1 && line.startsWith("Name: ")) {
+				name = line.substring(6).trim();
+			} else if (index != -1 && line.startsWith("Description: ")) {
+				name = line.substring(13).trim();
+			}
+		}
+		addAudioSource(sources, index, name); // Add the last parsed source
+	}
+
+	// Helper method to add an AudioSource to the list if valid
+	private void addAudioSource(List<AudioSource> sources, int index, String name) {
+		if (index != -1 && name != null && !name.isEmpty()) {
+			sources.add(new AudioSource(index, name));
+		}
+	}
 
 	@Override
 	public List<AudioSink> getSinks() {
